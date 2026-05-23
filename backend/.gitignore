@@ -1,0 +1,20 @@
+# Node dependencies
+node_modules/
+
+# TS build output
+dist/
+
+# Local configuration & secrets
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# System
+.DS_Store
+
+# Saved JSON data
+data/*.json
+!data/.gitkeep
