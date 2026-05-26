@@ -18,6 +18,7 @@ import { TransactionsScreen } from './src/screens/TransactionsScreen';
 import { BudgetSettingsScreen } from './src/screens/BudgetSettingsScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { Ionicons } from '@expo/vector-icons';
+import { ShakeExpenseModal } from './src/components/ShakeExpenseModal';
 
 type TabType = 'dashboard' | 'history' | 'budgets' | 'settings';
 
@@ -88,7 +89,8 @@ function MainAppContent() {
   };
 
   return (
-    <SafeAreaView style={[styles.appContainer, { backgroundColor: colors.background }]}>
+    <>
+      <SafeAreaView style={[styles.appContainer, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       
       {/* Sleek App Header */}
@@ -186,7 +188,9 @@ function MainAppContent() {
           </Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+      <ShakeExpenseModal />
+    </>
   );
 }
 
