@@ -38,3 +38,11 @@ yarn-error.log*
 # Database and data folders
 backend/data/*.json
 !backend/data/.gitkeep
+
+# Mobile app dependencies and temporary files
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/*.tsbuildinfo
+
