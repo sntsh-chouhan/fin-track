@@ -22,6 +22,7 @@ export const BudgetSettingsScreen: React.FC = () => {
   const [newCatName, setNewCatName] = useState('');
   const [newCatBudget, setNewCatBudget] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [isNewBudgetFocused, setIsNewBudgetFocused] = useState(false);
 
   // Edit category state
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
@@ -53,6 +54,7 @@ export const BudgetSettingsScreen: React.FC = () => {
       if (success) {
         setNewCatName('');
         setNewCatBudget('');
+        setIsNewBudgetFocused(false);
         Alert.alert('Success', `Category "${trimmedName}" created!`);
       } else {
         Alert.alert('Error', 'Failed to save category to Google Sheets.');
@@ -136,12 +138,14 @@ export const BudgetSettingsScreen: React.FC = () => {
             styles.textInput,
             { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border },
           ]}
-          placeholder="e.g. 200"
+          placeholder={isNewBudgetFocused ? "" : "e.g. 200"}
           placeholderTextColor={colors.textSecondary}
           value={newCatBudget}
           onChangeText={setNewCatBudget}
           keyboardType="decimal-pad"
           maxLength={10}
+          onFocus={() => setIsNewBudgetFocused(true)}
+          onBlur={() => setIsNewBudgetFocused(false)}
         />
 
         <TouchableOpacity

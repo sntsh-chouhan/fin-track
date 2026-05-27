@@ -31,6 +31,7 @@ export const ShakeExpenseModal: React.FC = () => {
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
+  const [isAmountFocused, setIsAmountFocused] = useState(false);
 
   // Accelerometer subscription
   useEffect(() => {
@@ -75,6 +76,7 @@ export const ShakeExpenseModal: React.FC = () => {
     setSubCategory('');
     setDescription('');
     setShowOptional(false);
+    setIsAmountFocused(false);
   };
 
   const handleSubmit = async () => {
@@ -143,13 +145,15 @@ export const ShakeExpenseModal: React.FC = () => {
               <Text style={[styles.dollarSign, { color: colors.textSecondary }]}>{currencySymbol}</Text>
               <TextInput
                 style={[styles.amountInput, { color: colors.primary }]}
-                placeholder="0.00"
+                placeholder={isAmountFocused ? "" : "0.00"}
                 placeholderTextColor={colors.textSecondary}
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="decimal-pad"
                 autoFocus={true}
                 maxLength={10}
+                onFocus={() => setIsAmountFocused(true)}
+                onBlur={() => setIsAmountFocused(false)}
               />
             </View>
 

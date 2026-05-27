@@ -26,6 +26,7 @@ export const DashboardScreen: React.FC = () => {
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
+  const [isAmountFocused, setIsAmountFocused] = useState(false);
 
   // Auto-select first category if available
   useEffect(() => {
@@ -127,12 +128,14 @@ export const DashboardScreen: React.FC = () => {
             <Text style={[styles.dollarSign, { color: colors.textSecondary }]}>{currencySymbol}</Text>
             <TextInput
               style={[styles.amountInput, { color: colors.primary }]}
-              placeholder="0.00"
+              placeholder={isAmountFocused ? "" : "0.00"}
               placeholderTextColor={colors.textSecondary}
               value={amount}
               onChangeText={setAmount}
               keyboardType="decimal-pad"
               maxLength={10}
+              onFocus={() => setIsAmountFocused(true)}
+              onBlur={() => setIsAmountFocused(false)}
             />
           </View>
 
