@@ -21,6 +21,7 @@ export const TransactionsScreen: React.FC = () => {
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<'all' | 'essential' | 'non-essential'>('all');
 
   const formatDate = (isoString: string) => {
     try {
@@ -58,10 +59,15 @@ export const TransactionsScreen: React.FC = () => {
     );
   };
 
-  // Filter transactions based on search and category tab
+  // Filter transactions based on search, category, and type tab
   const filteredTransactions = transactions.filter((tx) => {
     const matchesCategory =
       !selectedCategory || tx.category.toLowerCase() === selectedCategory.toLowerCase();
+
+    const matchesType =
+      typeFilter === 'all' ||
+      (typeFilter === 'essential' && tx.isEssential) ||
+      (typeFilter === 'non-essential' && !tx.isEssential);
 
     const matchesSearch =
       tx.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -69,7 +75,7 @@ export const TransactionsScreen: React.FC = () => {
       (tx.description && tx.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
       tx.amount.toString().includes(searchQuery);
 
-    return matchesCategory && matchesSearch;
+    return matchesCategory && matchesType && matchesSearch;
   });
 
   const renderTransactionItem = ({ item }: { item: Transaction }) => {
@@ -91,6 +97,26 @@ export const TransactionsScreen: React.FC = () => {
                 {' • '}{item.subCategory}
               </Text>
             ) : null}
+            
+            {/* Essential/Non-Essential Badge */}
+            <View
+              style={[
+                styles.typeBadge,
+                {
+                  backgroundColor: item.isEssential ? colors.success + '15' : colors.accent + '15',
+                  borderColor: item.isEssential ? colors.success + '30' : colors.accent + '30',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.typeBadgeText,
+                  { color: item.isEssential ? colors.success : colors.accent },
+                ]}
+              >
+                {item.isEssential ? 'Essential' : 'Non-Essential'}
+              </Text>
+            </View>
           </View>
           {item.description ? (
             <Text style={[styles.description, { color: colors.textSecondary }]}>
@@ -137,6 +163,81 @@ export const TransactionsScreen: React.FC = () => {
           categories={budgets.map((b) => b.category)}
           colors={colors}
         />
+      </View>
+
+      {/* Type filter chips */}
+      <View style={styles.typeFilterRow}>
+        <TouchableOpacity
+          onPress={() => setTypeFilter('all')}
+          style={[
+            styles.typeChip,
+            {
+              backgroundColor: typeFilter === 'all' ? colors.primary : colors.inputBg,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.typeChipText,
+              { color: typeFilter === 'all' ? colors.primaryInverse : colors.text },
+            ]}
+          >
+            All Types
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setTypeFilter('essential')}
+          style={[
+            styles.typeChip,
+            {
+              backgroundColor: typeFilter === 'essential' ? colors.success + '20' : colors.inputBg,
+              borderColor: typeFilter === 'essential' ? colors.success : colors.border,
+            },
+          ]}
+        >
+          <Ionicons
+            name="shield-checkmark"
+            size={12}
+            color={typeFilter === 'essential' ? colors.success : colors.textSecondary}
+            style={{ marginRight: 4 }}
+          />
+          <Text
+            style={[
+              styles.typeChipText,
+              { color: typeFilter === 'essential' ? colors.success : colors.text },
+            ]}
+          >
+            Essential
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setTypeFilter('non-essential')}
+          style={[
+            styles.typeChip,
+            {
+              backgroundColor: typeFilter === 'non-essential' ? colors.accent + '20' : colors.inputBg,
+              borderColor: typeFilter === 'non-essential' ? colors.accent : colors.border,
+            },
+          ]}
+        >
+          <Ionicons
+            name="gift"
+            size={12}
+            color={typeFilter === 'non-essential' ? colors.accent : colors.textSecondary}
+            style={{ marginRight: 4 }}
+          />
+          <Text
+            style={[
+              styles.typeChipText,
+              { color: typeFilter === 'non-essential' ? colors.accent : colors.text },
+            ]}
+          >
+            Non-Essential
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Transactions List */}
@@ -339,5 +440,36 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  typeFilterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    gap: 8,
+  },
+  typeChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  typeChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  typeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    marginLeft: 8,
+  },
+  typeBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
 });

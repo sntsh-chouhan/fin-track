@@ -22,7 +22,7 @@ interface AppContextType {
   refreshing: boolean;
   refreshData: () => Promise<void>;
   
-  addTransaction: (amount: number, category: string, subCategory: string, description: string) => Promise<boolean>;
+  addTransaction: (amount: number, category: string, subCategory: string, description: string, isEssential: boolean) => Promise<boolean>;
   deleteTransaction: (id: string) => Promise<boolean>;
   saveCategory: (category: string, budget: number) => Promise<boolean>;
   deleteCategory: (category: string) => Promise<boolean>;
@@ -167,11 +167,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     amount: number,
     category: string,
     subCategory: string,
-    description: string
+    description: string,
+    isEssential: boolean
   ): Promise<boolean> => {
     if (!sheetUrl) return false;
     try {
-      const newId = await sheetService.addTransaction(sheetUrl, amount, category, subCategory, description);
+      const newId = await sheetService.addTransaction(sheetUrl, amount, category, subCategory, description, isEssential);
       
       // Optimistic UI update or just standard refresh
       const newTx: Transaction = {
@@ -181,6 +182,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         category,
         subCategory,
         description,
+        isEssential,
       };
       
       const updatedTxs = [newTx, ...transactions];

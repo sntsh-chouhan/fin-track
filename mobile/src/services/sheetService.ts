@@ -5,6 +5,7 @@ export interface Transaction {
   category: string;
   subCategory: string;
   description: string;
+  isEssential: boolean;
 }
 
 export interface Budget {
@@ -97,7 +98,8 @@ export const sheetService = {
     amount: number,
     category: string,
     subCategory?: string,
-    description?: string
+    description?: string,
+    isEssential?: boolean
   ): Promise<string> => {
     console.log('\n--- [DEBUG: sheetService.addTransaction] ---');
     console.log('Target URL:', url);
@@ -107,6 +109,7 @@ export const sheetService = {
       category,
       subCategory: subCategory || '',
       description: description || '',
+      isEssential: isEssential !== undefined ? isEssential : true,
       timestamp: new Date().toISOString(),
     };
     console.log('Sending POST Payload:', JSON.stringify(payload));

@@ -55,8 +55,9 @@ function doPost(e) {
       const category = payload.category || 'Uncategorized';
       const subCategory = payload.subCategory || '';
       const description = payload.description || '';
+      const isEssential = payload.isEssential !== undefined ? payload.isEssential : true;
       
-      sheet.appendRow([id, amount, timestamp, category, subCategory, description]);
+      sheet.appendRow([id, amount, timestamp, category, subCategory, description, isEssential]);
       return jsonResponse({ status: 'success', message: 'Transaction added', id: id });
     }
     
@@ -141,7 +142,7 @@ function initializeSheets() {
   let transSheet = ss.getSheetByName('Transactions');
   if (!transSheet) {
     transSheet = ss.insertSheet('Transactions');
-    transSheet.appendRow(['id', 'amount', 'timestamp', 'category', 'subCategory', 'description']);
+    transSheet.appendRow(['id', 'amount', 'timestamp', 'category', 'subCategory', 'description', 'isEssential']);
   }
   
   let budgetSheet = ss.getSheetByName('Budgets');
@@ -156,20 +157,21 @@ function initializeSheets() {
   }
 }
 
-function fetchAllData() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
   const transSheet = ss.getSheetByName('Transactions');
   const transData = transSheet.getDataRange().getValues();
   const transactions = [];
   for (let i = 1; i < transData.length; i++) {
+    const rawIsEssential = transData[i][6];
+    const isEssential = rawIsEssential === undefined || rawIsEssential === '' ? true : (rawIsEssential === true || rawIsEssential === 'true' || rawIsEssential === 1 || rawIsEssential === '1' || String(rawIsEssential).toUpperCase() === 'TRUE');
+    
     transactions.push({
       id: transData[i][0],
       amount: Number(transData[i][1]),
       timestamp: transData[i][2],
       category: transData[i][3],
       subCategory: transData[i][4],
-      description: transData[i][5]
+      description: transData[i][5],
+      isEssential: isEssential
     });
   }
   

@@ -32,6 +32,7 @@ export const ShakeExpenseModal: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
   const [isAmountFocused, setIsAmountFocused] = useState(false);
+  const [isEssential, setIsEssential] = useState(true);
 
   // Accelerometer subscription
   useEffect(() => {
@@ -77,6 +78,7 @@ export const ShakeExpenseModal: React.FC = () => {
     setDescription('');
     setShowOptional(false);
     setIsAmountFocused(false);
+    setIsEssential(true);
   };
 
   const handleSubmit = async () => {
@@ -97,7 +99,8 @@ export const ShakeExpenseModal: React.FC = () => {
         numAmount,
         selectedCategory,
         subCategory.trim(),
-        description.trim()
+        description.trim(),
+        isEssential
       );
 
       if (success) {
@@ -196,6 +199,62 @@ export const ShakeExpenseModal: React.FC = () => {
                 })
               )}
             </ScrollView>
+
+            {/* Expense Type (Essential vs Non-Essential) */}
+            <Text style={[styles.inputLabel, { color: colors.text }]}>Expense Type</Text>
+            <View style={styles.typeSelectorContainer}>
+              <TouchableOpacity
+                onPress={() => setIsEssential(true)}
+                style={[
+                  styles.typeChip,
+                  {
+                    backgroundColor: isEssential ? colors.success + '20' : colors.inputBg,
+                    borderColor: isEssential ? colors.success : colors.border,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="shield-checkmark"
+                  size={16}
+                  color={isEssential ? colors.success : colors.textSecondary}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.typeChipText,
+                    { color: isEssential ? colors.success : colors.text },
+                  ]}
+                >
+                  Essential
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setIsEssential(false)}
+                style={[
+                  styles.typeChip,
+                  {
+                    backgroundColor: !isEssential ? colors.accent + '20' : colors.inputBg,
+                    borderColor: !isEssential ? colors.accent : colors.border,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="gift"
+                  size={16}
+                  color={!isEssential ? colors.accent : colors.textSecondary}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.typeChipText,
+                    { color: !isEssential ? colors.accent : colors.text },
+                  ]}
+                >
+                  Non-Essential
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Optional Details Toggle */}
             <TouchableOpacity
@@ -378,6 +437,24 @@ const styles = StyleSheet.create({
   },
   submitBtnText: {
     fontSize: 15,
+    fontWeight: '700',
+  },
+  typeSelectorContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 12,
+  },
+  typeChip: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  typeChipText: {
+    fontSize: 13,
     fontWeight: '700',
   },
 });

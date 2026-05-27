@@ -27,6 +27,7 @@ export const DashboardScreen: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
   const [isAmountFocused, setIsAmountFocused] = useState(false);
+  const [isEssential, setIsEssential] = useState(true);
 
   // Auto-select first category if available
   useEffect(() => {
@@ -52,6 +53,17 @@ export const DashboardScreen: React.FC = () => {
   const totalSpent = thisMonthTransactions.reduce((sum, tx) => sum + tx.amount, 0);
   const totalBudget = budgets.reduce((sum, b) => sum + b.budget, 0);
   const overallPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+
+  // Essential vs Non-essential breakdown
+  const essentialSpent = thisMonthTransactions
+    .filter((tx) => tx.isEssential)
+    .reduce((sum, tx) => sum + tx.amount, 0);
+  const nonEssentialSpent = thisMonthTransactions
+    .filter((tx) => !tx.isEssential)
+    .reduce((sum, tx) => sum + tx.amount, 0);
+
+  const essentialPercentage = totalSpent > 0 ? (essentialSpent / totalSpent) * 100 : 0;
+  const nonEssentialPercentage = totalSpent > 0 ? (nonEssentialSpent / totalSpent) * 100 : 0;
 
   // Category breakdown
   const categorySummaries = budgets.map((b) => {
@@ -84,7 +96,8 @@ export const DashboardScreen: React.FC = () => {
         numAmount,
         selectedCategory,
         subCategory.trim(),
-        description.trim()
+        description.trim(),
+        isEssential
       );
 
       if (success) {
@@ -93,6 +106,7 @@ export const DashboardScreen: React.FC = () => {
         setSubCategory('');
         setDescription('');
         setShowOptional(false);
+        setIsEssential(true);
         Alert.alert('Success', 'Expense recorded!');
       } else {
         Alert.alert('Error', 'Failed to save transaction to Google Sheets.');
@@ -178,6 +192,62 @@ export const DashboardScreen: React.FC = () => {
               })
             )}
           </ScrollView>
+
+          {/* Expense Type (Essential vs Non-Essential) */}
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Expense Type</Text>
+          <View style={styles.typeSelectorContainer}>
+            <TouchableOpacity
+              onPress={() => setIsEssential(true)}
+              style={[
+                styles.typeChip,
+                {
+                  backgroundColor: isEssential ? colors.success + '20' : colors.inputBg,
+                  borderColor: isEssential ? colors.success : colors.border,
+                },
+              ]}
+            >
+              <Ionicons
+                name="shield-checkmark"
+                size={16}
+                color={isEssential ? colors.success : colors.textSecondary}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                style={[
+                  styles.typeChipText,
+                  { color: isEssential ? colors.success : colors.text },
+                ]}
+              >
+                Essential
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setIsEssential(false)}
+              style={[
+                styles.typeChip,
+                {
+                  backgroundColor: !isEssential ? colors.accent + '20' : colors.inputBg,
+                  borderColor: !isEssential ? colors.accent : colors.border,
+                },
+              ]}
+            >
+              <Ionicons
+                name="gift"
+                size={16}
+                color={!isEssential ? colors.accent : colors.textSecondary}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                style={[
+                  styles.typeChipText,
+                  { color: !isEssential ? colors.accent : colors.text },
+                ]}
+              >
+                Non-Essential
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Optional Details Toggle */}
           <TouchableOpacity
@@ -274,6 +344,55 @@ export const DashboardScreen: React.FC = () => {
               ]}
             />
           </View>
+
+          {/* Essential vs Non-essential Breakdown Widget */}
+          {totalSpent > 0 && (
+            <View style={styles.breakdownContainer}>
+              <View style={[styles.separator, { backgroundColor: colors.border }]} />
+              
+              <Text style={[styles.breakdownTitle, { color: colors.textSecondary }]}>
+                Expense Breakdown
+              </Text>
+              
+              {/* Dual progress bar */}
+              <View style={[styles.ratioTrack, { backgroundColor: colors.inputBg }]}>
+                <View
+                  style={[
+                    styles.ratioBarEssential,
+                    {
+                      width: `${essentialPercentage}%`,
+                      backgroundColor: colors.success,
+                    },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.ratioBarNonEssential,
+                    {
+                      width: `${nonEssentialPercentage}%`,
+                      backgroundColor: colors.accent,
+                    },
+                  ]}
+                />
+              </View>
+
+              <View style={styles.ratioLabelsRow}>
+                <View style={styles.ratioLabelItem}>
+                  <View style={[styles.colorIndicator, { backgroundColor: colors.success }]} />
+                  <Text style={[styles.ratioText, { color: colors.text }]}>
+                    Essential: {currencySymbol}{essentialSpent.toFixed(0)} ({essentialPercentage.toFixed(0)}%)
+                  </Text>
+                </View>
+                
+                <View style={styles.ratioLabelItem}>
+                  <View style={[styles.colorIndicator, { backgroundColor: colors.accent }]} />
+                  <Text style={[styles.ratioText, { color: colors.text }]}>
+                    Non-Essential: {currencySymbol}{nonEssentialSpent.toFixed(0)} ({nonEssentialPercentage.toFixed(0)}%)
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Budget Health Overview */}
@@ -481,5 +600,68 @@ const styles = StyleSheet.create({
   catAmounts: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  typeSelectorContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 12,
+  },
+  typeChip: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  typeChipText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  breakdownContainer: {
+    marginTop: 16,
+  },
+  separator: {
+    height: 1,
+    marginBottom: 16,
+  },
+  breakdownTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  ratioTrack: {
+    height: 6,
+    borderRadius: 3,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  ratioBarEssential: {
+    height: '100%',
+  },
+  ratioBarNonEssential: {
+    height: '100%',
+  },
+  ratioLabelsRow: {
+    flexDirection: 'column',
+    gap: 6,
+  },
+  ratioLabelItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  colorIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  ratioText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
