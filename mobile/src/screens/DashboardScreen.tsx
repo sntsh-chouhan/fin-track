@@ -118,38 +118,6 @@ export const DashboardScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Overall Progress Widget */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.cardHeader}>
-            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>Spent this Month</Text>
-            {refreshing && <ActivityIndicator size="small" color={colors.primary} />}
-          </View>
-          <Text style={[styles.mainAmount, { color: colors.primary }]}>
-            {currencySymbol}{totalSpent.toFixed(2)}
-          </Text>
-          <View style={styles.budgetRow}>
-            <Text style={[styles.budgetText, { color: colors.textSecondary }]}>
-              Budget: {currencySymbol}{totalBudget.toFixed(2)}
-            </Text>
-            <Text style={[styles.budgetText, { color: colors.textSecondary }]}>
-              {overallPercentage.toFixed(0)}%
-            </Text>
-          </View>
-          
-          {/* Progress Bar */}
-          <View style={[styles.progressTrack, { backgroundColor: colors.inputBg }]}>
-            <View
-              style={[
-                styles.progressBar,
-                {
-                  width: `${Math.min(overallPercentage, 100)}%`,
-                  backgroundColor: getProgressBarColor(overallPercentage),
-                },
-              ]}
-            />
-          </View>
-        </View>
-
         {/* Add Expense Form */}
         <Text style={[styles.sectionTitle, { color: colors.primary }]}>Quick Expense</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -271,6 +239,38 @@ export const DashboardScreen: React.FC = () => {
               </Text>
             )}
           </TouchableOpacity>
+        </View>
+
+        {/* Overall Progress Widget */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.cardHeader}>
+            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>Spent this Month</Text>
+            {refreshing && <ActivityIndicator size="small" color={colors.primary} />}
+          </View>
+          <Text style={[styles.mainAmount, { color: colors.primary }]}>
+            {currencySymbol}{totalSpent.toFixed(2)}
+          </Text>
+          <View style={styles.budgetRow}>
+            <Text style={[styles.budgetText, { color: colors.textSecondary }]}>
+              Budget: {currencySymbol}{totalBudget.toFixed(2)}
+            </Text>
+            <Text style={[styles.budgetText, { color: colors.textSecondary }]}>
+              {overallPercentage.toFixed(0)}%
+            </Text>
+          </View>
+          
+          {/* Progress Bar */}
+          <View style={[styles.progressTrack, { backgroundColor: colors.inputBg }]}>
+            <View
+              style={[
+                styles.progressBar,
+                {
+                  width: `${Math.min(overallPercentage, 100)}%`,
+                  backgroundColor: getProgressBarColor(overallPercentage),
+                },
+              ]}
+            />
+          </View>
         </View>
 
         {/* Budget Health Overview */}
