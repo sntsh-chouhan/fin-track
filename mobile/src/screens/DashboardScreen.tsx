@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,6 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
@@ -28,6 +30,84 @@ export const DashboardScreen: React.FC = () => {
   const [showOptional, setShowOptional] = useState(false);
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [isEssential, setIsEssential] = useState(true);
+
+  const isEssentialRef = useRef(isEssential);
+  useEffect(() => {
+    isEssentialRef.current = isEssential;
+  }, [isEssential]);
+
+  const slideAnim = useRef(new Animated.Value(1)).current; // 1 = Essential, 0 = Non-Essential
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dx) > 2,
+      onPanResponderGrant: () => {},
+      onPanResponderMove: (_, gestureState) => {
+        let newX = (isEssentialRef.current ? 2 : 120) + gestureState.dx;
+        if (newX < 2) newX = 2;
+        if (newX > 120) newX = 120;
+        
+        const fraction = (120 - newX) / 118;
+        slideAnim.setValue(fraction);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (Math.abs(gestureState.dx) < 5) {
+          const nextState = !isEssentialRef.current;
+          setIsEssential(nextState);
+          Animated.spring(slideAnim, {
+            toValue: nextState ? 1 : 0,
+            tension: 60,
+            friction: 8,
+            useNativeDriver: false,
+          }).start();
+          return;
+        }
+
+        const finalX = (isEssentialRef.current ? 2 : 120) + gestureState.dx;
+        const nextState = finalX < 61;
+        
+        setIsEssential(nextState);
+        Animated.spring(slideAnim, {
+          toValue: nextState ? 1 : 0,
+          tension: 60,
+          friction: 8,
+          useNativeDriver: false,
+        }).start();
+      },
+    })
+  ).current;
+
+  // Programmatic state synchronization (form resets)
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: isEssential ? 1 : 0,
+      tension: 60,
+      friction: 8,
+      useNativeDriver: false,
+    }).start();
+  }, [isEssential]);
+
+  const translateX = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [120, 2],
+  });
+
+  const handleBgColor = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#1e1e20', '#ffffff'],
+  });
+
+  const handleBorderColor = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#2e2e30', '#eaeaea'],
+  });
+
+  const essentialOpacity = slideAnim;
+  const nonEssentialOpacity = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+  });
 
   // Auto-select first category if available
   useEffect(() => {
@@ -153,6 +233,36 @@ export const DashboardScreen: React.FC = () => {
             />
           </View>
 
+          {/* Custom Toggle Switch for Essential vs Non-Essential */}
+          <View
+            style={[
+              styles.customSwitch,
+              {
+                backgroundColor: colors.inputBg,
+                borderColor: colors.border,
+              },
+            ]}
+            {...panResponder.panHandlers}
+          >
+            <Animated.View
+              style={[
+                styles.switchHandle,
+                {
+                  transform: [{ translateX }],
+                  backgroundColor: handleBgColor,
+                  borderColor: handleBorderColor,
+                },
+              ]}
+            >
+              <Animated.View style={[styles.handleTextWrapper, { opacity: essentialOpacity }]}>
+                <Text style={[styles.switchText, { color: '#000000' }]}>Essential</Text>
+              </Animated.View>
+              <Animated.View style={[styles.handleTextWrapper, { opacity: nonEssentialOpacity }]}>
+                <Text style={[styles.switchText, { color: '#ffffff' }]}>Non-Essential</Text>
+              </Animated.View>
+            </Animated.View>
+          </View>
+
           {/* Category Selector */}
           <Text style={[styles.inputLabel, { color: colors.text }]}>Category</Text>
           <ScrollView
@@ -192,62 +302,6 @@ export const DashboardScreen: React.FC = () => {
               })
             )}
           </ScrollView>
-
-          {/* Expense Type (Essential vs Non-Essential) */}
-          <Text style={[styles.inputLabel, { color: colors.text }]}>Expense Type</Text>
-          <View style={styles.typeSelectorContainer}>
-            <TouchableOpacity
-              onPress={() => setIsEssential(true)}
-              style={[
-                styles.typeChip,
-                {
-                  backgroundColor: isEssential ? colors.success + '20' : colors.inputBg,
-                  borderColor: isEssential ? colors.success : colors.border,
-                },
-              ]}
-            >
-              <Ionicons
-                name="shield-checkmark"
-                size={16}
-                color={isEssential ? colors.success : colors.textSecondary}
-                style={{ marginRight: 6 }}
-              />
-              <Text
-                style={[
-                  styles.typeChipText,
-                  { color: isEssential ? colors.success : colors.text },
-                ]}
-              >
-                Essential
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setIsEssential(false)}
-              style={[
-                styles.typeChip,
-                {
-                  backgroundColor: !isEssential ? colors.accent + '20' : colors.inputBg,
-                  borderColor: !isEssential ? colors.accent : colors.border,
-                },
-              ]}
-            >
-              <Ionicons
-                name="gift"
-                size={16}
-                color={!isEssential ? colors.accent : colors.textSecondary}
-                style={{ marginRight: 6 }}
-              />
-              <Text
-                style={[
-                  styles.typeChipText,
-                  { color: !isEssential ? colors.accent : colors.text },
-                ]}
-              >
-                Non-Essential
-              </Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Optional Details Toggle */}
           <TouchableOpacity
@@ -601,23 +655,42 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  typeSelectorContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    gap: 12,
-  },
-  typeChip: {
-    flex: 1,
-    height: 40,
-    borderRadius: 8,
+  customSwitch: {
+    width: 240,
+    height: 44,
+    borderRadius: 22,
+    alignSelf: 'center',
+    marginBottom: 20,
+    position: 'relative',
     borderWidth: 1,
-    flexDirection: 'row',
+  },
+  switchHandle: {
+    position: 'absolute',
+    top: 2,
+    width: 116,
+    height: 38,
+    borderRadius: 18,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  handleTextWrapper: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  typeChipText: {
-    fontSize: 13,
-    fontWeight: '700',
+  switchText: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   breakdownContainer: {
     marginTop: 16,
