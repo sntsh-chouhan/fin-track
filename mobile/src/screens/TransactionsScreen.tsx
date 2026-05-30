@@ -8,6 +8,9 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
 } from 'react-native';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
@@ -20,7 +23,60 @@ export const TransactionsScreen: React.FC = () => {
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  // Amount Filter Popup state (Zero-typing Range filter)
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [minAmount, setMinAmount] = useState<number>(0);
+  const [maxAmount, setMaxAmount] = useState<number>(Infinity);
+
+  const minPresets = [0, 5, 10, 25, 50, 100, 200, 500, 1000, 2500];
+  const maxPresets = [5, 10, 25, 50, 100, 200, 500, 1000, 2500, Infinity];
+
+  const handleMinSelect = (val: number) => {
+    setMinAmount(val);
+    if (val > maxAmount) {
+      setMaxAmount(Infinity);
+    }
+  };
+
+  const handleMaxSelect = (val: number) => {
+    setMaxAmount(val);
+    if (val < minAmount) {
+      setMinAmount(0);
+    }
+  };
+
+  const handleResetFilters = () => {
+    setMinAmount(0);
+    setMaxAmount(Infinity);
+  };
+
+  const handleSelectCategory = (cat: string) => {
+    if (selectedCategories.length > 1) {
+      if (selectedCategories.includes(cat)) {
+        const next = selectedCategories.filter((c) => c !== cat);
+        setSelectedCategories(next);
+      } else {
+        setSelectedCategories([...selectedCategories, cat]);
+      }
+    } else {
+      setSelectedCategories([cat]);
+    }
+  };
+
+  const handleLongPressCategory = (cat: string) => {
+    if (selectedCategories.includes(cat)) {
+      const next = selectedCategories.filter((c) => c !== cat);
+      setSelectedCategories(next);
+    } else {
+      setSelectedCategories([...selectedCategories, cat]);
+    }
+  };
+
+  const handleClearCategories = () => {
+    setSelectedCategories([]);
+  };
   const [typeFilter, setTypeFilter] = useState<'all' | 'essential' | 'non-essential'>('all');
 
   const formatDate = (isoString: string) => {
@@ -59,10 +115,11 @@ export const TransactionsScreen: React.FC = () => {
     );
   };
 
-  // Filter transactions based on search, category, and type tab
+  // Filter transactions based on search, category, type tab, and amount bounds
   const filteredTransactions = transactions.filter((tx) => {
     const matchesCategory =
-      !selectedCategory || tx.category.toLowerCase() === selectedCategory.toLowerCase();
+      selectedCategories.length === 0 ||
+      selectedCategories.some((cat) => cat.toLowerCase() === tx.category.toLowerCase());
 
     const matchesType =
       typeFilter === 'all' ||
@@ -75,8 +132,26 @@ export const TransactionsScreen: React.FC = () => {
       (tx.description && tx.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
       tx.amount.toString().includes(searchQuery);
 
-    return matchesCategory && matchesType && matchesSearch;
+    const matchesAmount = tx.amount >= minAmount && tx.amount <= maxAmount;
+
+    return matchesCategory && matchesType && matchesSearch && matchesAmount;
   });
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const monthName = now.toLocaleString('default', { month: 'long' });
+
+  const totalFilteredSpent = filteredTransactions
+    .filter((tx) => {
+      try {
+        const txDate = new Date(tx.timestamp);
+        return txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear;
+      } catch {
+        return false;
+      }
+    })
+    .reduce((sum, tx) => sum + tx.amount, 0);
 
   const renderTransactionItem = ({ item }: { item: Transaction }) => {
     return (
@@ -138,28 +213,48 @@ export const TransactionsScreen: React.FC = () => {
     );
   };
 
+  const isFilterActive = minAmount > 0 || maxAmount < Infinity;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Search Header */}
-      <View style={styles.searchHeader}>
-        <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+      {/* Search Header Row with Funnel Filter */}
+      <View style={styles.searchHeaderRow}>
+        <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border, flex: 1 }]}>
           <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search amount, category, description..."
+            placeholder="Search category, desc..."
             placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
             clearButtonMode="while-editing"
           />
         </View>
+        <TouchableOpacity
+          onPress={() => setShowFilterModal(true)}
+          style={[
+            styles.filterBtn,
+            {
+              backgroundColor: isFilterActive ? colors.accent + '15' : colors.inputBg,
+              borderColor: isFilterActive ? colors.accent : colors.border,
+            },
+          ]}
+        >
+          <Ionicons
+            name={isFilterActive ? 'funnel' : 'funnel-outline'}
+            size={18}
+            color={isFilterActive ? colors.accent : colors.textSecondary}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* Categories filter chips */}
       <View style={styles.filterContainer}>
         <ScrollViewHorizontal
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
+          selectedCategories={selectedCategories}
+          onSelectCategory={handleSelectCategory}
+          onLongPressCategory={handleLongPressCategory}
+          onClearCategories={handleClearCategories}
           categories={budgets.map((b) => b.category)}
           colors={colors}
         />
@@ -192,7 +287,7 @@ export const TransactionsScreen: React.FC = () => {
           style={[
             styles.typeChip,
             {
-              backgroundColor: typeFilter === 'essential' ? colors.success + '20' : colors.inputBg,
+              backgroundColor: typeFilter === 'essential' ? colors.success : colors.inputBg,
               borderColor: typeFilter === 'essential' ? colors.success : colors.border,
             },
           ]}
@@ -200,13 +295,13 @@ export const TransactionsScreen: React.FC = () => {
           <Ionicons
             name="shield-checkmark"
             size={12}
-            color={typeFilter === 'essential' ? colors.success : colors.textSecondary}
+            color={typeFilter === 'essential' ? colors.primaryInverse : colors.textSecondary}
             style={{ marginRight: 4 }}
           />
           <Text
             style={[
               styles.typeChipText,
-              { color: typeFilter === 'essential' ? colors.success : colors.text },
+              { color: typeFilter === 'essential' ? colors.primaryInverse : colors.text },
             ]}
           >
             Essential
@@ -218,7 +313,7 @@ export const TransactionsScreen: React.FC = () => {
           style={[
             styles.typeChip,
             {
-              backgroundColor: typeFilter === 'non-essential' ? colors.accent + '20' : colors.inputBg,
+              backgroundColor: typeFilter === 'non-essential' ? colors.accent : colors.inputBg,
               borderColor: typeFilter === 'non-essential' ? colors.accent : colors.border,
             },
           ]}
@@ -226,13 +321,13 @@ export const TransactionsScreen: React.FC = () => {
           <Ionicons
             name="gift"
             size={12}
-            color={typeFilter === 'non-essential' ? colors.accent : colors.textSecondary}
+            color={typeFilter === 'non-essential' ? colors.primaryInverse : colors.textSecondary}
             style={{ marginRight: 4 }}
           />
           <Text
             style={[
               styles.typeChipText,
-              { color: typeFilter === 'non-essential' ? colors.accent : colors.text },
+              { color: typeFilter === 'non-essential' ? colors.primaryInverse : colors.text },
             ]}
           >
             Non-Essential
@@ -248,6 +343,16 @@ export const TransactionsScreen: React.FC = () => {
         contentContainerStyle={styles.listContent}
         refreshing={refreshing}
         onRefresh={refreshData}
+        ListHeaderComponent={
+          <View style={[styles.spentCounterCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.spentCounterLabel, { color: colors.textSecondary }]}>
+              {monthName} Spent (Filtered)
+            </Text>
+            <Text style={[styles.spentCounterAmount, { color: colors.primary }]}>
+              {currencySymbol}{totalFilteredSpent.toFixed(2)}
+            </Text>
+          </View>
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             {refreshing ? (
@@ -263,18 +368,153 @@ export const TransactionsScreen: React.FC = () => {
           </View>
         }
       />
+
+      {/* Amount Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowFilterModal(false)} />
+          <View style={[styles.modalSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {/* Drag Handle */}
+            <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
+
+            {/* Header Row */}
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>Filter by Amount</Text>
+              <TouchableOpacity
+                onPress={() => setShowFilterModal(false)}
+                style={[styles.closeBtn, { backgroundColor: colors.inputBg }]}
+              >
+                <Ionicons name="close-outline" size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Active Bounds Display */}
+            <View style={[styles.boundsSummary, { backgroundColor: colors.inputBg }]}>
+              <Ionicons name="calculator-outline" size={16} color={colors.accent} style={{ marginRight: 8 }} />
+              <Text style={[styles.boundsSummaryText, { color: colors.text }]}>
+                {!isFilterActive
+                  ? 'Showing all amounts'
+                  : `Between ${currencySymbol}${minAmount} and ${
+                      maxAmount === Infinity ? 'No Limit' : `${currencySymbol}${maxAmount}`
+                    }`}
+              </Text>
+            </View>
+
+            {/* Min Amount Presets */}
+            <Text style={[styles.presetSectionTitle, { color: colors.textSecondary }]}>MINIMUM AMOUNT</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.presetScroll}
+              style={styles.presetScrollWrapper}
+            >
+              {minPresets.map((val) => {
+                const isSelected = minAmount === val;
+                return (
+                  <TouchableOpacity
+                    key={`min-${val}`}
+                    onPress={() => handleMinSelect(val)}
+                    style={[
+                      styles.presetChip,
+                      {
+                        backgroundColor: isSelected ? colors.primary : colors.inputBg,
+                        borderColor: isSelected ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.presetChipText,
+                        { color: isSelected ? colors.primaryInverse : colors.text },
+                      ]}
+                    >
+                      {val === 0 ? 'Any' : `${currencySymbol}${val}`}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Max Amount Presets */}
+            <Text style={[styles.presetSectionTitle, { color: colors.textSecondary }]}>MAXIMUM AMOUNT</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.presetScroll}
+              style={styles.presetScrollWrapper}
+            >
+              {maxPresets.map((val) => {
+                const isSelected = maxAmount === val;
+                return (
+                  <TouchableOpacity
+                    key={`max-${val}`}
+                    onPress={() => handleMaxSelect(val)}
+                    style={[
+                      styles.presetChip,
+                      {
+                        backgroundColor: isSelected ? colors.primary : colors.inputBg,
+                        borderColor: isSelected ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.presetChipText,
+                        { color: isSelected ? colors.primaryInverse : colors.text },
+                      ]}
+                    >
+                      {val === Infinity ? 'No Limit' : `${currencySymbol}${val}`}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Action Buttons */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                onPress={handleResetFilters}
+                style={[styles.actionBtnReset, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              >
+                <Text style={[styles.actionBtnResetText, { color: colors.text }]}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowFilterModal(false)}
+                style={[styles.actionBtnApply, { backgroundColor: colors.accent }]}
+              >
+                <Text style={styles.actionBtnApplyText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
 // Sub-component for horizontal filters to avoid wrapping issue
 const ScrollViewHorizontal: React.FC<{
-  selectedCategory: string | null;
-  setSelectedCategory: (cat: string | null) => void;
+  selectedCategories: string[];
+  onSelectCategory: (cat: string) => void;
+  onLongPressCategory: (cat: string) => void;
+  onClearCategories: () => void;
   categories: string[];
   colors: any;
-}> = ({ selectedCategory, setSelectedCategory, categories, colors }) => {
-  const { ScrollView } = require('react-native');
+}> = ({
+  selectedCategories,
+  onSelectCategory,
+  onLongPressCategory,
+  onClearCategories,
+  categories,
+  colors,
+}) => {
+  const isAllSelected = selectedCategories.length === 0;
+
   return (
     <ScrollView
       horizontal
@@ -282,11 +522,11 @@ const ScrollViewHorizontal: React.FC<{
       contentContainerStyle={styles.filterScroll}
     >
       <TouchableOpacity
-        onPress={() => setSelectedCategory(null)}
+        onPress={onClearCategories}
         style={[
           styles.chip,
           {
-            backgroundColor: selectedCategory === null ? colors.primary : colors.inputBg,
+            backgroundColor: isAllSelected ? colors.primary : colors.inputBg,
             borderColor: colors.border,
           },
         ]}
@@ -294,18 +534,20 @@ const ScrollViewHorizontal: React.FC<{
         <Text
           style={[
             styles.chipText,
-            { color: selectedCategory === null ? colors.primaryInverse : colors.text },
+            { color: isAllSelected ? colors.primaryInverse : colors.text },
           ]}
         >
           All
         </Text>
       </TouchableOpacity>
       {categories.map((cat) => {
-        const isSelected = selectedCategory === cat;
+        const isSelected = selectedCategories.includes(cat);
         return (
           <TouchableOpacity
             key={cat}
-            onPress={() => setSelectedCategory(cat)}
+            onPress={() => onSelectCategory(cat)}
+            onLongPress={() => onLongPressCategory(cat)}
+            delayLongPress={200}
             style={[
               styles.chip,
               {
@@ -471,5 +713,153 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
+  },
+  spentCounterCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  spentCounterLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  spentCounterAmount: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  searchHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  filterBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    paddingHorizontal: 20,
+    paddingBottom: 34,
+    paddingTop: 10,
+  },
+  dragHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  boundsSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  boundsSummaryText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  presetSectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  presetScrollWrapper: {
+    marginBottom: 20,
+  },
+  presetScroll: {
+    paddingVertical: 4,
+    paddingRight: 16,
+  },
+  presetChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginRight: 8,
+    borderWidth: 1,
+    minWidth: 64,
+    alignItems: 'center',
+  },
+  presetChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 12,
+  },
+  actionBtnReset: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionBtnResetText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  actionBtnApply: {
+    flex: 2,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionBtnApplyText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

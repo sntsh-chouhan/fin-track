@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,6 +9,10 @@ import {
   Alert,
   ActivityIndicator,
   Keyboard,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
@@ -28,6 +32,7 @@ export const BudgetSettingsScreen: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editBudgetVal, setEditBudgetVal] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const editInputRef = useRef<TextInput>(null);
 
   const handleCreateCategory = async () => {
     const trimmedName = newCatName.trim();
@@ -115,133 +120,92 @@ export const BudgetSettingsScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-      {/* Create New Category Card */}
-      <Text style={[styles.sectionTitle, { color: colors.primary }]}>Create Category</Text>
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.inputLabel, { color: colors.text }]}>Category Name</Text>
-        <TextInput
-          style={[
-            styles.textInput,
-            { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border },
-          ]}
-          placeholder="e.g. Health, Travel, Subscriptions"
-          placeholderTextColor={colors.textSecondary}
-          value={newCatName}
-          onChangeText={setNewCatName}
-          maxLength={20}
-        />
+    <>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        {/* Create New Category Card */}
+        <Text style={[styles.sectionTitle, { color: colors.primary }]}>Create Category</Text>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Category Name</Text>
+          <TextInput
+            style={[
+              styles.textInput,
+              { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border },
+            ]}
+            placeholder="e.g. Health, Travel, Subscriptions"
+            placeholderTextColor={colors.textSecondary}
+            value={newCatName}
+            onChangeText={setNewCatName}
+            maxLength={20}
+          />
 
-        <Text style={[styles.inputLabel, { color: colors.text }]}>Monthly Budget Limit ({currencySymbol})</Text>
-        <TextInput
-          style={[
-            styles.textInput,
-            { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border },
-          ]}
-          placeholder={isNewBudgetFocused ? "" : "e.g. 200"}
-          placeholderTextColor={colors.textSecondary}
-          value={newCatBudget}
-          onChangeText={setNewCatBudget}
-          keyboardType="decimal-pad"
-          maxLength={10}
-          onFocus={() => setIsNewBudgetFocused(true)}
-          onBlur={() => setIsNewBudgetFocused(false)}
-        />
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Monthly Budget Limit ({currencySymbol})</Text>
+          <TextInput
+            style={[
+              styles.textInput,
+              { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border },
+            ]}
+            placeholder={isNewBudgetFocused ? "" : "e.g. 200"}
+            placeholderTextColor={colors.textSecondary}
+            value={newCatBudget}
+            onChangeText={setNewCatBudget}
+            keyboardType="decimal-pad"
+            maxLength={10}
+            onFocus={() => setIsNewBudgetFocused(true)}
+            onBlur={() => setIsNewBudgetFocused(false)}
+          />
 
-        <TouchableOpacity
-          onPress={handleCreateCategory}
-          disabled={isCreating}
-          style={[
-            styles.submitBtn,
-            { backgroundColor: colors.primary, opacity: isCreating ? 0.7 : 1 },
-          ]}
-        >
-          {isCreating ? (
-            <ActivityIndicator color={colors.primaryInverse} />
-          ) : (
-            <Text style={[styles.submitBtnText, { color: colors.primaryInverse }]}>
-              Create Category
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Categories & Budgets List */}
-      <View style={styles.listHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.primary, marginBottom: 0 }]}>
-          Manage Budgets
-        </Text>
-        {refreshing && <ActivityIndicator size="small" color={colors.primary} />}
-        {!refreshing && (
-          <TouchableOpacity onPress={refreshData}>
-            <Ionicons name="refresh" size={16} color={colors.textSecondary} />
+          <TouchableOpacity
+            onPress={handleCreateCategory}
+            disabled={isCreating}
+            style={[
+              styles.submitBtn,
+              { backgroundColor: colors.primary, opacity: isCreating ? 0.7 : 1 },
+            ]}
+          >
+            {isCreating ? (
+              <ActivityIndicator color={colors.primaryInverse} />
+            ) : (
+              <Text style={[styles.submitBtnText, { color: colors.primaryInverse }]}>
+                Create Category
+              </Text>
+            )}
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
 
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, padding: 8 }]}>
-        {budgets.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              No categories configured yet.
-            </Text>
-          </View>
-        ) : (
-          budgets.map((item, index) => {
-            const isEditing = editingCategory === item.category;
-            return (
-              <View
-                key={item.category}
-                style={[
-                  styles.categoryRow,
-                  {
-                    borderBottomWidth: index === budgets.length - 1 ? 0 : 1,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                {isEditing ? (
-                  /* Edit State */
-                  <View style={styles.editRow}>
-                    <View style={styles.editLeft}>
-                      <Text style={[styles.categoryName, { color: colors.text }]}>
-                        {item.category}
-                      </Text>
-                      <View style={[styles.editInputContainer, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
-                        <Text style={[styles.dollarSign, { color: colors.textSecondary }]}>{currencySymbol}</Text>
-                        <TextInput
-                          style={[styles.editInput, { color: colors.text }]}
-                          value={editBudgetVal}
-                          onChangeText={setEditBudgetVal}
-                          keyboardType="decimal-pad"
-                          autoFocus
-                          maxLength={10}
-                        />
-                      </View>
-                    </View>
-                    
-                    <View style={styles.actionGroup}>
-                      <TouchableOpacity
-                        onPress={() => handleUpdateBudget(item.category)}
-                        disabled={isUpdating}
-                        style={[styles.actionBtn, { backgroundColor: colors.primary }]}
-                      >
-                        {isUpdating ? (
-                          <ActivityIndicator size="small" color={colors.primaryInverse} />
-                        ) : (
-                          <Ionicons name="checkmark" size={18} color={colors.primaryInverse} />
-                        )}
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => setEditingCategory(null)}
-                        style={[styles.actionBtn, { backgroundColor: colors.inputBg }]}
-                      >
-                        <Ionicons name="close" size={18} color={colors.text} />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : (
-                  /* Normal State */
+        {/* Categories & Budgets List */}
+        <View style={styles.listHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.primary, marginBottom: 0 }]}>
+            Manage Budgets
+          </Text>
+          {refreshing && <ActivityIndicator size="small" color={colors.primary} />}
+          {!refreshing && (
+            <TouchableOpacity onPress={refreshData}>
+              <Ionicons name="refresh" size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, padding: 8 }]}>
+          {budgets.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                No categories configured yet.
+              </Text>
+            </View>
+          ) : (
+            budgets.map((item, index) => {
+              return (
+                <View
+                  key={item.category}
+                  style={[
+                    styles.categoryRow,
+                    {
+                      borderBottomWidth: index === budgets.length - 1 ? 0 : 1,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  {/* Normal State */}
                   <View style={styles.viewRow}>
                     <View>
                       <Text style={[styles.categoryName, { color: colors.text }]}>
@@ -267,13 +231,97 @@ export const BudgetSettingsScreen: React.FC = () => {
                       </TouchableOpacity>
                     </View>
                   </View>
-                )}
+                </View>
+              );
+            })
+          )}
+        </View>
+      </ScrollView>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={editingCategory !== null}
+        onShow={() => {
+          setTimeout(() => {
+            editInputRef.current?.focus();
+          }, 80);
+        }}
+        onRequestClose={() => {
+          if (!isUpdating) setEditingCategory(null);
+        }}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => {
+            if (!isUpdating) setEditingCategory(null);
+          }}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              style={{ width: '100%' }}
+            >
+              <View style={[styles.modalContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                {/* Header */}
+                <View style={styles.modalHeader}>
+                  <View style={styles.headerTitleRow}>
+                    <Ionicons name="pencil-sharp" size={18} color={colors.primary} style={{ marginRight: 6 }} />
+                    <Text style={[styles.modalTitle, { color: colors.primary }]}>Edit Budget</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setEditingCategory(null)}
+                    disabled={isUpdating}
+                    style={[styles.closeBtn, { backgroundColor: colors.inputBg }]}
+                  >
+                    <Ionicons name="close" size={20} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Category Label */}
+                <Text style={[styles.categoryLabel, { color: colors.textSecondary }]}>
+                  Category: <Text style={{ color: colors.text, fontWeight: '700' }}>{editingCategory}</Text>
+                </Text>
+
+                {/* Amount Input */}
+                <View style={styles.modalAmountInputContainer}>
+                  <Text style={[styles.modalDollarSign, { color: colors.textSecondary }]}>{currencySymbol}</Text>
+                  <TextInput
+                    ref={editInputRef}
+                    style={[styles.modalAmountInput, { color: colors.primary }]}
+                    placeholder="0.00"
+                    placeholderTextColor={colors.textSecondary}
+                    value={editBudgetVal}
+                    onChangeText={setEditBudgetVal}
+                    keyboardType="decimal-pad"
+                    maxLength={10}
+                  />
+                </View>
+
+                {/* Actions */}
+                <TouchableOpacity
+                  onPress={() => editingCategory && handleUpdateBudget(editingCategory)}
+                  disabled={isUpdating}
+                  style={[
+                    styles.submitBtn,
+                    { backgroundColor: colors.primary, opacity: isUpdating ? 0.7 : 1 },
+                  ]}
+                >
+                  {isUpdating ? (
+                    <ActivityIndicator color={colors.primaryInverse} />
+                  ) : (
+                    <Text style={[styles.submitBtnText, { color: colors.primaryInverse }]}>
+                      Save Changes
+                    </Text>
+                  )}
+                </TouchableOpacity>
               </View>
-            );
-          })
-        )}
-      </View>
-    </ScrollView>
+            </KeyboardAvoidingView>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 };
 
@@ -361,32 +409,63 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 8,
   },
-  editRow: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    padding: 24,
+    paddingBottom: 48,
+  },
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 20,
   },
-  editLeft: {
-    flex: 1,
-    marginRight: 8,
-  },
-  editInputContainer: {
+  headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 40,
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    marginTop: 6,
   },
-  dollarSign: {
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryLabel: {
     fontSize: 14,
+    marginBottom: 16,
+  },
+  modalAmountInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(128,128,128,0.15)',
+    paddingBottom: 8,
+    marginBottom: 24,
+  },
+  modalDollarSign: {
+    fontSize: 32,
     fontWeight: '600',
     marginRight: 4,
   },
-  editInput: {
+  modalAmountInput: {
+    fontSize: 40,
+    fontWeight: '800',
+    textAlign: 'center',
     flex: 1,
-    fontSize: 14,
     padding: 0,
   },
   emptyContainer: {

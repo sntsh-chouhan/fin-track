@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { sheetService, Transaction, Budget } from '../services/sheetService';
+import { sheetService, Transaction, Budget, getLocalISOString } from '../services/sheetService';
 
 interface AppContextType {
   sheetUrl: string | null;
@@ -178,7 +178,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const newTx: Transaction = {
         id: newId,
         amount,
-        timestamp: new Date().toISOString(),
+        timestamp: getLocalISOString(),
         category,
         subCategory,
         description,

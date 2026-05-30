@@ -57,7 +57,7 @@ function doPost(e) {
       const description = payload.description || '';
       const isEssential = payload.isEssential !== undefined ? payload.isEssential : true;
       
-      sheet.appendRow([id, amount, timestamp, category, subCategory, description, isEssential]);
+      sheet.appendRow([id, amount, "'" + timestamp, category, subCategory, description, isEssential]);
       return jsonResponse({ status: 'success', message: 'Transaction added', id: id });
     }
     
@@ -194,5 +194,37 @@ function initializeSheets() {
 function jsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function convertTimestampsToLocal() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const transSheet = ss.getSheetByName('Transactions');
+  if (!transSheet) {
+    Logger.log("No Transactions sheet found.");
+    return;
+  }
+  
+  const range = transSheet.getDataRange();
+  const displayValues = range.getDisplayValues();
+  let updateCount = 0;
+  
+  for (let i = 1; i < displayValues.length; i++) {
+    const rawVal = displayValues[i][2]; // 3rd column: timestamp
+    if (rawVal) {
+      if (rawVal.includes('T')) {
+        let cleanVal = rawVal.split('.')[0]; // remove milliseconds if present
+        if (cleanVal.endsWith('Z')) {
+          cleanVal = cleanVal.slice(0, -1); // remove trailing 'Z'
+        }
+        
+        // Ensure format matches YYYY-MM-DDTHH:mm:ss
+        if (cleanVal.length === 19) {
+          transSheet.getRange(i + 1, 3).setValue("'" + cleanVal); // write as text
+          updateCount++;
+        }
+      }
+    }
+  }
+  Logger.log("Successfully converted " + updateCount + " timestamps to local format!");
 }
 `;

@@ -18,6 +18,22 @@ export interface SheetData {
   budgets: Budget[];
 }
 
+export const getLocalISOString = (date: Date = new Date()): string => {
+  const pad = (num: number) => (num < 10 ? '0' : '') + num;
+  const padMs = (num: number) => {
+    if (num < 10) return '00' + num;
+    if (num < 100) return '0' + num;
+    return num.toString();
+  };
+  return date.getFullYear() +
+    '-' + pad(date.getMonth() + 1) +
+    '-' + pad(date.getDate()) +
+    'T' + pad(date.getHours()) +
+    ':' + pad(date.getMinutes()) +
+    ':' + pad(date.getSeconds()) +
+    '.' + padMs(date.getMilliseconds());
+};
+
 export const sheetService = {
   /**
    * Test the connection to the Google Apps Script Web App
@@ -110,7 +126,7 @@ export const sheetService = {
       subCategory: subCategory || '',
       description: description || '',
       isEssential: isEssential !== undefined ? isEssential : true,
-      timestamp: new Date().toISOString(),
+      timestamp: getLocalISOString(),
     };
     console.log('Sending POST Payload:', JSON.stringify(payload));
 
