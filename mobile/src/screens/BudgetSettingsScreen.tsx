@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Keyboard,
   Modal,
@@ -19,7 +18,16 @@ import { useTheme } from '../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 export const BudgetSettingsScreen: React.FC = () => {
-  const { budgets, saveCategory, deleteCategory, refreshing, refreshData, currencySymbol } = useApp();
+  const {
+    budgets,
+    saveCategory,
+    deleteCategory,
+    refreshing,
+    refreshData,
+    currencySymbol,
+    showAlert,
+    showConfirm,
+  } = useApp();
   const { colors } = useTheme();
 
   // Create category state
@@ -37,18 +45,18 @@ export const BudgetSettingsScreen: React.FC = () => {
   const handleCreateCategory = async () => {
     const trimmedName = newCatName.trim();
     if (!trimmedName) {
-      Alert.alert('Empty Name', 'Please enter a category name.');
+      showAlert('Empty Name', 'Please enter a category name.', 'error');
       return;
     }
     const numBudget = parseFloat(newCatBudget);
     if (isNaN(numBudget) || numBudget < 0) {
-      Alert.alert('Invalid Budget', 'Please enter a valid budget amount (0 or more).');
+      showAlert('Invalid Budget', 'Please enter a valid budget amount (0 or more).', 'error');
       return;
     }
 
     // Check if category already exists
     if (budgets.some((b) => b.category.toLowerCase() === trimmedName.toLowerCase())) {
-      Alert.alert('Duplicate Category', 'A category with this name already exists.');
+      showAlert('Duplicate Category', 'A category with this name already exists.', 'error');
       return;
     }
 
@@ -60,12 +68,12 @@ export const BudgetSettingsScreen: React.FC = () => {
         setNewCatName('');
         setNewCatBudget('');
         setIsNewBudgetFocused(false);
-        Alert.alert('Success', `Category "${trimmedName}" created!`);
+        showAlert('Success', `Category "${trimmedName}" created!`, 'success');
       } else {
-        Alert.alert('Error', 'Failed to save category to Google Sheets.');
+        showAlert('Error', 'Failed to save category to Google Sheets.', 'error');
       }
     } catch (e) {
-      Alert.alert('Error', 'An unexpected error occurred.');
+      showAlert('Error', 'An unexpected error occurred.', 'error');
     } finally {
       setIsCreating(false);
     }
@@ -74,7 +82,7 @@ export const BudgetSettingsScreen: React.FC = () => {
   const handleUpdateBudget = async (category: string) => {
     const numBudget = parseFloat(editBudgetVal);
     if (isNaN(numBudget) || numBudget < 0) {
-      Alert.alert('Invalid Budget', 'Please enter a valid budget amount.');
+      showAlert('Invalid Budget', 'Please enter a valid budget amount.', 'error');
       return;
     }
 
@@ -85,10 +93,10 @@ export const BudgetSettingsScreen: React.FC = () => {
         setEditingCategory(null);
         setEditBudgetVal('');
       } else {
-        Alert.alert('Error', 'Failed to update budget.');
+        showAlert('Error', 'Failed to update budget.', 'error');
       }
     } catch (e) {
-      Alert.alert('Error', 'An unexpected error occurred.');
+      showAlert('Error', 'An unexpected error occurred.', 'error');
     } finally {
       setIsUpdating(false);
     }
@@ -100,22 +108,15 @@ export const BudgetSettingsScreen: React.FC = () => {
   };
 
   const handleDeleteCategory = (category: string) => {
-    Alert.alert(
+    showConfirm(
       'Delete Category',
       `Are you sure you want to delete the category "${category}"? This will remove its budget tracking from Google Sheets.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            const success = await deleteCategory(category);
-            if (!success) {
-              Alert.alert('Error', 'Failed to delete category.');
-            }
-          },
-        },
-      ]
+      async () => {
+        const success = await deleteCategory(category);
+        if (!success) {
+          showAlert('Error', 'Failed to delete category.', 'error');
+        }
+      }
     );
   };
 

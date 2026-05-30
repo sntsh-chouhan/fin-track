@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   Animated,
   PanResponder,
 } from 'react-native';
@@ -29,7 +28,7 @@ import Svg, {
 } from 'react-native-svg';
 
 export const DashboardScreen: React.FC = () => {
-  const { transactions, budgets, addTransaction, refreshing, refreshData, currencySymbol } = useApp();
+  const { transactions, budgets, addTransaction, refreshing, refreshData, currencySymbol, showAlert } = useApp();
   const { isDark, colors } = useTheme();
 
   // Form State
@@ -377,11 +376,11 @@ export const DashboardScreen: React.FC = () => {
   const handleAddExpense = async () => {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      Alert.alert('Invalid Amount', 'Please enter a positive number.');
+      showAlert('Invalid Amount', 'Please enter a positive number.', 'error');
       return;
     }
     if (!selectedCategory) {
-      Alert.alert('No Category', 'Please select or create a category first.');
+      showAlert('No Category', 'Please select or create a category first.', 'error');
       return;
     }
 
@@ -402,12 +401,12 @@ export const DashboardScreen: React.FC = () => {
         setDescription('');
         setShowOptional(false);
         setIsEssential(true);
-        Alert.alert('Success', 'Expense recorded!');
+        showAlert('Success', 'Expense recorded!', 'success');
       } else {
-        Alert.alert('Error', 'Failed to save transaction to Google Sheets.');
+        showAlert('Error', 'Failed to save transaction to Google Sheets.', 'error');
       }
     } catch (e) {
-      Alert.alert('Error', 'An unexpected error occurred.');
+      showAlert('Error', 'An unexpected error occurred.', 'error');
     } finally {
       setIsSubmitting(false);
     }

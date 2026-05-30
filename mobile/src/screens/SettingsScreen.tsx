@@ -5,7 +5,6 @@ import {
   View,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Switch,
   Platform,
   TextInput,
@@ -15,28 +14,31 @@ import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { APPS_SCRIPT_TEMPLATE } from '../services/scriptTemplate';
 import { Ionicons } from '@expo/vector-icons';
+import appJson from '../../app.json';
 
 export const SettingsScreen: React.FC<{ onLaunchPasscodeSetup: () => void }> = ({
   onLaunchPasscodeSetup,
 }) => {
-  const { sheetUrl, disconnectSheet, passcode, setPasscodeState, currencySymbol, setCurrencySymbol } = useApp();
+  const {
+    sheetUrl,
+    disconnectSheet,
+    passcode,
+    setPasscodeState,
+    currencySymbol,
+    setCurrencySymbol,
+    showAlert,
+    showConfirm,
+  } = useApp();
   const { colors, toggleTheme, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
 
   const handleDisconnect = () => {
-    Alert.alert(
+    showConfirm(
       'Disconnect Database',
       'Are you sure you want to disconnect from this Google Sheet? Your local cache will be cleared, but your data on Google Sheets remains safe.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Disconnect',
-          style: 'destructive',
-          onPress: async () => {
-            await disconnectSheet();
-          },
-        },
-      ]
+      async () => {
+        await disconnectSheet();
+      }
     );
   };
 
@@ -52,19 +54,12 @@ export const SettingsScreen: React.FC<{ onLaunchPasscodeSetup: () => void }> = (
       onLaunchPasscodeSetup();
     } else {
       // Confirm remove passcode
-      Alert.alert(
+      showConfirm(
         'Disable Passcode',
         'Are you sure you want to disable the passcode? Anyone will be able to view your financial data.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Disable',
-            style: 'destructive',
-            onPress: async () => {
-              await setPasscodeState(null);
-            },
-          },
-        ]
+        async () => {
+          await setPasscodeState(null);
+        }
       );
     }
   };
@@ -169,7 +164,7 @@ export const SettingsScreen: React.FC<{ onLaunchPasscodeSetup: () => void }> = (
 
       {/* About Section */}
       <View style={styles.aboutContainer}>
-        <Text style={[styles.aboutText, { color: colors.textSecondary }]}>FinTrack v1.0.0 (MVP)</Text>
+        <Text style={[styles.aboutText, { color: colors.textSecondary }]}>FinTrack v{appJson.expo.version}</Text>
         <Text style={[styles.aboutText, { color: colors.textSecondary }]}>
           Your financial data belongs only to you.
         </Text>

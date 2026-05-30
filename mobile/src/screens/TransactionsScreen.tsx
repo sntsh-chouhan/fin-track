@@ -6,7 +6,6 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Modal,
   Pressable,
@@ -18,7 +17,16 @@ import { Transaction } from '../services/sheetService';
 import { Ionicons } from '@expo/vector-icons';
 
 export const TransactionsScreen: React.FC = () => {
-  const { transactions, budgets, deleteTransaction, refreshing, refreshData, currencySymbol } = useApp();
+  const {
+    transactions,
+    budgets,
+    deleteTransaction,
+    refreshing,
+    refreshData,
+    currencySymbol,
+    showAlert,
+    showConfirm,
+  } = useApp();
   const { colors } = useTheme();
 
   // Search & Filter state
@@ -96,22 +104,15 @@ export const TransactionsScreen: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert(
+    showConfirm(
       'Delete Transaction',
       'Are you sure you want to delete this transaction from Google Sheets?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            const success = await deleteTransaction(id);
-            if (!success) {
-              Alert.alert('Error', 'Failed to delete transaction.');
-            }
-          },
-        },
-      ]
+      async () => {
+        const success = await deleteTransaction(id);
+        if (!success) {
+          showAlert('Error', 'Failed to delete transaction.', 'error');
+        }
+      }
     );
   };
 

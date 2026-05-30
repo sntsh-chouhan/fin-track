@@ -26,6 +26,18 @@ interface AppContextType {
   deleteTransaction: (id: string) => Promise<boolean>;
   saveCategory: (category: string, budget: number) => Promise<boolean>;
   deleteCategory: (category: string) => Promise<boolean>;
+
+  showAlert: (title: string, message: string, type?: 'success' | 'error' | 'info') => void;
+  showConfirm: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => void;
+  hideAlert: () => void;
+  alertConfig: {
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'confirm';
+    onConfirm?: () => void;
+    onCancel?: () => void;
+  };
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -39,6 +51,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'confirm';
+    onConfirm?: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+  });
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type: 'confirm',
+      onConfirm,
+      onCancel,
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
 
   // 1. Initial Load from AsyncStorage
   useEffect(() => {
@@ -281,6 +331,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteTransaction,
         saveCategory,
         deleteCategory,
+        showAlert,
+        showConfirm,
+        hideAlert,
+        alertConfig,
       }}
     >
       {children}

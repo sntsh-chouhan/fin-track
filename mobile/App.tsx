@@ -23,11 +23,12 @@ import { BudgetSettingsScreen } from './src/screens/BudgetSettingsScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { ShakeExpenseModal } from './src/components/ShakeExpenseModal';
+import { CustomAlert } from './src/components/CustomAlert';
 
 type TabType = 'dashboard' | 'history' | 'budgets' | 'settings';
 
 function MainAppContent() {
-  const { sheetUrl, isLocked, setIsLocked, loading } = useApp();
+  const { sheetUrl, isLocked, setIsLocked, loading, alertConfig, hideAlert } = useApp();
   const { colors, isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
@@ -218,6 +219,15 @@ function MainAppContent() {
       )}
       </SafeAreaView>
       <ShakeExpenseModal />
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+        onClose={hideAlert}
+      />
     </>
   );
 }

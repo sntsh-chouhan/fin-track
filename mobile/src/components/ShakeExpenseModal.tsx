@@ -9,7 +9,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Vibration,
-  Alert,
   Keyboard,
   Animated,
   PanResponder,
@@ -20,7 +19,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 export const ShakeExpenseModal: React.FC = () => {
-  const { sheetUrl, isLocked, budgets, addTransaction, currencySymbol } = useApp();
+  const { sheetUrl, isLocked, budgets, addTransaction, currencySymbol, showAlert } = useApp();
   const { colors } = useTheme();
 
   // Modal display state
@@ -164,11 +163,11 @@ export const ShakeExpenseModal: React.FC = () => {
   const handleSubmit = async () => {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      Alert.alert('Invalid Amount', 'Please enter a positive number.');
+      showAlert('Invalid Amount', 'Please enter a positive number.', 'error');
       return;
     }
     if (!selectedCategory) {
-      Alert.alert('No Category', 'Please select or create a category first.');
+      showAlert('No Category', 'Please select or create a category first.', 'error');
       return;
     }
 
@@ -185,12 +184,12 @@ export const ShakeExpenseModal: React.FC = () => {
 
       if (success) {
         handleClose();
-        Alert.alert('Success', 'Expense recorded via shake!');
+        showAlert('Success', 'Expense recorded via shake!', 'success');
       } else {
-        Alert.alert('Error', 'Failed to save transaction.');
+        showAlert('Error', 'Failed to save transaction.', 'error');
       }
     } catch (e) {
-      Alert.alert('Error', 'An unexpected error occurred.');
+      showAlert('Error', 'An unexpected error occurred.', 'error');
     } finally {
       setIsSubmitting(false);
     }
